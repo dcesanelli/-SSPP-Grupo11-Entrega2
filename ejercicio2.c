@@ -220,7 +220,6 @@ void *worker(void *ptr)
             for (int z = 0; z < BS; z++)
             {
               mr[BY_ROW(x, y, N)] += m1[BY_ROW(x, z, N)] * m2[BY_COL(z, y, N)];
-              printf("R1-%d,%d-%f\n", y, z, mr[BY_ROW(x, y, N)]);
             }
           }
         }
@@ -246,7 +245,6 @@ void *worker(void *ptr)
             for (int z = 0; z < BS; z++)
             {
               mr[BY_ROW(x, y, N)] += m1[BY_ROW(x, z, N)] * m2[BY_COL(z, y, N)];
-              printf("R2-%d,%d-%f\n", y, z, mr[BY_ROW(x, y, N)]);
             }
           }
         }
@@ -304,7 +302,6 @@ void *calculo_secuencial()
             for (int z = 0; z < BS; z++)
             {
               mr[BY_ROW(x, y, N)] += m1[BY_ROW(x, z, N)] * m2[BY_COL(z, y, N)];
-              printf("R1-%d,%d-%f\n", y, z, mr[BY_ROW(x, y, N)]);
             }
           }
         }
@@ -330,7 +327,6 @@ void *calculo_secuencial()
             for (int z = 0; z < BS; z++)
             {
               mr[BY_ROW(x, y, N)] += m1[BY_ROW(x, z, N)] * m2[BY_COL(z, y, N)];
-              printf("R2-%d,%d-%f\n", y, z, mr[BY_ROW(x, y, N)]);
             }
           }
         }
