@@ -47,14 +47,12 @@ int main(int argc, char *argv[])
   double *r1a = (double *)malloc(sizeof(double) * N * N);
   double *r2b = (double *)malloc(sizeof(double) * N * N);
 
-  int i, j, k, x, y, z;
-
   time_t t;
   srand((unsigned)time(&t));
 
-  for (i = 0; i < N; i++)
+  for (int i = 0; i < N; i++)
   {
-    for (j = 0; j < N; j++)
+    for (int j = 0; j < N; j++)
     {
       // Inicializar matrices A, B, T
       A[BY_COL(i, j, N)] = randFP(0, 1);
@@ -73,19 +71,18 @@ int main(int argc, char *argv[])
   // y AVGR2y 𝑅2(𝑖,𝑗) = (1 − 𝑇(𝑖,𝑗))(1 − sin𝜃(𝑖,𝑗)) + 𝑇(𝑖,𝑗) cos𝜃(𝑖,𝑗)
   double avgR1 = 0;
   double avgR2 = 0;
-#pragma omp parallel shared(R1, R2, A, B, T, M, avgR1, avgR2, r1a, r2b, Cp, N, BS) private(i, j, k, x, y, z)
+#pragma omp parallel shared(R1, R2, A, B, T, M, r1a, r2b, Cp, N, BS) 
   {
 
-//#pragma omp for reduction(+:avgR1, +:avgR1)
-#pragma omp for
-    for (i = 0; i < N; i++)
+#pragma omp for reduction(+:avgR1) reduction(+:avgR2)
+    for (int i = 0; i < N; i++)
     {
-      for (j = 0; j < N; j++)
+      for (int j = 0; j < N; j++)
       {
         R1[BY_ROW(i, j, N)] = (1 - T[BY_ROW(i, j, N)]) * (1 - cos(M[BY_ROW(i, j, N)])) + T[BY_ROW(i, j, N)] * sin(M[BY_ROW(i, j, N)]);
         R2[BY_ROW(i, j, N)] = (1 - T[BY_ROW(i, j, N)]) * (1 - sin(M[BY_ROW(i, j, N)])) + T[BY_ROW(i, j, N)] * cos(M[BY_ROW(i, j, N)]);
         avgR1 += R1[BY_ROW(i, j, N)];
-        avgR1 += R2[BY_ROW(i, j, N)];
+        avgR2 += R2[BY_ROW(i, j, N)];
       }
     }
 
@@ -93,25 +90,26 @@ int main(int argc, char *argv[])
     {
       avgR1 /= N * N;
       avgR2 /= N * N;
+      printf("%f-%f\n",avgR1,avgR2);
     }
 
     // Multiplicación R1*A
-#pragma omp for nowait
-    for (i = 0; i < N; i += BS)
+#pragma omp for schedule(static) nowait
+    for (int i = 0; i < N; i += BS)
     {
-      for (j = 0; j < N; j += BS)
+      for (int j = 0; j < N; j += BS)
       {
         r1a[BY_ROW(i, j, N)] = 0;
-        for (k = 0; k < N; k += BS)
+        for (int k = 0; k < N; k += BS)
         {
           double *m1 = &R1[BY_ROW(i, k, N)];
           double *m2 = &A[BY_COL(k, j, N)];
           double *mr = &r1a[BY_ROW(i, k, N)];
-          for (x = 0; x < BS; x++)
+          for (int x = 0; x < BS; x++)
           {
-            for (y = 0; y < BS; y++)
+            for (int y = 0; y < BS; y++)
             {
-              for (z = 0; z < BS; z++)
+              for (int z = 0; z < BS; z++)
               {
                 mr[BY_ROW(x, y, N)] += m1[BY_ROW(x, z, N)] * m2[BY_COL(z, y, N)];
               }
@@ -122,22 +120,22 @@ int main(int argc, char *argv[])
     }
 
     // Multiplicación R2*B
-#pragma omp for
-    for (i = 0; i < N; i += BS)
+#pragma omp for schedule(static)
+    for (int i = 0; i < N; i += BS)
     {
-      for (j = 0; j < N; j += BS)
+      for (int j = 0; j < N; j += BS)
       {
         r2b[BY_ROW(i, j, N)] = 0;
-        for (k = 0; k < N; k += BS)
+        for (int k = 0; k < N; k += BS)
         {
           double *m1 = &R2[BY_ROW(i, k, N)];
           double *m2 = &B[BY_COL(k, j, N)];
           double *mr = &r2b[BY_ROW(i, k, N)];
-          for (x = 0; x < BS; x++)
+          for (int x = 0; x < BS; x++)
           {
-            for (y = 0; y < BS; y++)
+            for (int y = 0; y < BS; y++)
             {
-              for (z = 0; z < BS; z++)
+              for (int z = 0; z < BS; z++)
               {
                 mr[BY_ROW(x, y, N)] += m1[BY_ROW(x, z, N)] * m2[BY_COL(z, y, N)];
               }
@@ -148,10 +146,10 @@ int main(int argc, char *argv[])
     }
 
     // Calcular C = T + avgR * R(A + B)
-#pragma omp for
-    for (i = 0; i < N; i++)
+#pragma omp for schedule(static)
+    for (int i = 0; i < N; i++)
     {
-      for (j = 0; j < N; j++)
+      for (int j = 0; j < N; j++)
       {
         Cp[BY_ROW(i, j, N)] = T[BY_ROW(i, j, N)] + avgR1 * avgR2 * (r1a[BY_ROW(i, j, N)] + r2b[BY_ROW(i, j, N)]);
       }
@@ -159,7 +157,7 @@ int main(int argc, char *argv[])
   }
 
   double ptime = dwalltime() - timetick;
-  printf("Tiempo Paralelo Pthread en segundos %f \n", ptime);
+  printf("Tiempo Paralelo OpenMP en segundos %f \n", ptime);
 
   //CALCULO SECUENCIAL
   timetick = dwalltime();
@@ -178,6 +176,7 @@ int main(int argc, char *argv[])
       avgR2 += R2[BY_ROW(i, j, N)];
     }
   }
+
   avgR1 /= N * N;
   avgR2 /= N * N;
 
@@ -251,6 +250,12 @@ int main(int argc, char *argv[])
   {
     for (int j = 0; j < N; j++)
     {
+
+      if (fabs(Cp[BY_ROW(i, j, N)] - Cs[BY_ROW(i, j, N)]) > 0.000001)
+      {
+        printf("[%d,%d][%f-%f]\n", i, j, Cp[BY_ROW(i, j, N)], Cs[BY_ROW(i, j, N)]);
+      }
+
       check = check && (fabs(Cp[BY_ROW(i, j, N)] - Cs[BY_ROW(i, j, N)]) < 0.000001);
     }
   }
