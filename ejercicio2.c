@@ -178,8 +178,8 @@ void *worker(void *ptr)
     {
       R1[BY_ROW(id + (Th * i), j, N)] = (1 - T[BY_ROW(id + (Th * i), j, N)]) * (1 - cos(M[BY_ROW(id + (Th * i), j, N)])) + T[BY_ROW(id + (Th * i), j, N)] * sin(M[BY_ROW(id + (Th * i), j, N)]);
       R2[BY_ROW(id + (Th * i), j, N)] = (1 - T[BY_ROW(id + (Th * i), j, N)]) * (1 - sin(M[BY_ROW(id + (Th * i), j, N)])) + T[BY_ROW(id + (Th * i), j, N)] * cos(M[BY_ROW(id + (Th * i), j, N)]);
-      lavgR1 += R1[BY_ROW(id + (Th * i), j, N)];
-      lavgR2 += R2[BY_ROW(id + (Th * i), j, N)];
+      lavgR1 = +R1[BY_ROW(id + (Th * i), j, N)];
+      lavgR2 = +R2[BY_ROW(id + (Th * i), j, N)];
     }
   }
   pthread_mutex_lock(&mutex);
@@ -264,8 +264,8 @@ void *calculo_secuencial()
     {
       R1[BY_ROW(i, j, N)] = (1 - T[BY_ROW(i, j, N)]) * (1 - cos(M[BY_ROW(i, j, N)])) + T[BY_ROW(i, j, N)] * sin(M[BY_ROW(i, j, N)]);
       R2[BY_ROW(i, j, N)] = (1 - T[BY_ROW(i, j, N)]) * (1 - sin(M[BY_ROW(i, j, N)])) + T[BY_ROW(i, j, N)] * cos(M[BY_ROW(i, j, N)]);
-      avgR1 += R1[BY_ROW(i, j, N)];
-      avgR2 += R2[BY_ROW(i, j, N)];
+      avgR1 = +R1[BY_ROW(i, j, N)];
+      avgR2 = +R2[BY_ROW(i, j, N)];
     }
   }
   avgR1 /= N * N;
