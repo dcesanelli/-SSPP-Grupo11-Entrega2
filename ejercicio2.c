@@ -21,14 +21,16 @@ double *T;
 double *R1;
 double *R2;
 double *M;
-double *r1a;
-double *r2b;
+double *r1ap;
+double *r2bp;
+double *r1as;
+double *r2bs;
 
 double avgR1;
 double avgR2;
 
 pthread_mutex_t mutex;
-pthread_barrier_t barrier_avgr, barrier_c;
+pthread_barrier_t barrier_avgr, barrier_c, barrier_init;
 
 /* Time in seconds from some point in the past */
 double dwalltime();
@@ -65,8 +67,10 @@ int main(int argc, char *argv[])
   R1 = (double *)malloc(sizeof(double) * N * N);
   R2 = (double *)malloc(sizeof(double) * N * N);
   M = (double *)malloc(sizeof(double) * N * N);
-  r1a = (double *)malloc(sizeof(double) * N * N);
-  r2b = (double *)malloc(sizeof(double) * N * N);
+  r1ap = (double *)malloc(sizeof(double) * N * N);
+  r2bp = (double *)malloc(sizeof(double) * N * N);
+  r1as = (double *)malloc(sizeof(double) * N * N);
+  r2bs = (double *)malloc(sizeof(double) * N * N);
 
   avgR1 = 0;
   avgR2 = 0;
@@ -77,6 +81,7 @@ int main(int argc, char *argv[])
 
   pthread_barrier_init(&barrier_avgr, NULL, Th);
   pthread_barrier_init(&barrier_c, NULL, Th);
+  pthread_barrier_init(&barrier_init, NULL, Th);
 
   int i, j;
   int *ids = (int *)malloc(sizeof(int) * Th);
@@ -95,6 +100,8 @@ int main(int argc, char *argv[])
 
       // La matriz M tiene rango 0 a 2*PI
       M[BY_ROW(i, j, N)] = randFP(0, 2 * PI);
+      R1[BY_ROW(i, j, N)] = 0;
+      R2[BY_ROW(i, j, N)] = 0;
     }
   }
 
@@ -159,12 +166,15 @@ int main(int argc, char *argv[])
   free(R1);
   free(R2);
   free(M);
-  free(r1a);
-  free(r2b);
+  free(r1ap);
+  free(r2bp);
+  free(r1as);
+  free(r2bs);
   free(threads);
   pthread_mutex_destroy(&mutex);
   pthread_barrier_destroy(&barrier_avgr);
   pthread_barrier_destroy(&barrier_c);
+  pthread_barrier_destroy(&barrier_init);
 }
 
 void *worker(void *ptr)
@@ -201,18 +211,18 @@ void *worker(void *ptr)
     avgR2 /= (N * N);
     pthread_mutex_unlock(&mutex);
   }
-
+  pthread_barrier_wait(&barrier_init);
   // Multiplicación R1*A
   for (int i = 0; i < (N / Th); i += BS)
   {
     for (int j = 0; j < N; j += BS)
     {
-      r1a[BY_ROW(id + (Th * i), j, N)] = 0;
+      r1ap[BY_ROW(i + ((N / Th) * id), j, N)] = 0;
       for (int k = 0; k < N; k += BS)
       {
-        double *m1 = &R1[BY_ROW(id + (Th * i), k, N)];
+        double *m1 = &R1[BY_ROW(i + ((N / Th) * id), k, N)];
         double *m2 = &A[BY_COL(k, j, N)];
-        double *mr = &r1a[BY_ROW(id + (Th * i), k, N)];
+        double *mr = &r1ap[BY_ROW(i + ((N / Th) * id), j, N)];
         for (int x = 0; x < BS; x++)
         {
           for (int y = 0; y < BS; y++)
@@ -232,12 +242,12 @@ void *worker(void *ptr)
   {
     for (int j = 0; j < N; j += BS)
     {
-      r2b[BY_ROW(id + (Th * i), j, N)] = 0;
+      r2bp[BY_ROW(i + ((N / Th) * id), j, N)] = 0;
       for (int k = 0; k < N; k += BS)
       {
-        double *m1 = &R2[BY_ROW(id + (Th * i), k, N)];
+        double *m1 = &R2[BY_ROW(i + ((N / Th) * id), k, N)];
         double *m2 = &B[BY_COL(k, j, N)];
-        double *mr = &r2b[BY_ROW(id + (Th * i), k, N)];
+        double *mr = &r2bp[BY_ROW(i + ((N / Th) * id), j, N)];
         for (int x = 0; x < BS; x++)
         {
           for (int y = 0; y < BS; y++)
@@ -259,7 +269,7 @@ void *worker(void *ptr)
   {
     for (int j = 0; j < N; j++)
     {
-      Cp[BY_ROW(id + (Th * i), j, N)] = T[BY_ROW(id + (Th * i), j, N)] + avgR1 * avgR2 * (r1a[BY_ROW(id + (Th * i), j, N)] + r2b[BY_ROW(id + (Th * i), j, N)]);
+      Cp[BY_ROW(id + (Th * i), j, N)] = T[BY_ROW(id + (Th * i), j, N)] + avgR1 * avgR2 * (r1ap[BY_ROW(id + (Th * i), j, N)] + r2bp[BY_ROW(id + (Th * i), j, N)]);
     }
   }
   pthread_exit(0);
@@ -289,12 +299,12 @@ void *calculo_secuencial()
   {
     for (int j = 0; j < N; j += BS)
     {
-      r1a[BY_ROW(i, j, N)] = 0;
+      r1as[BY_ROW(i, j, N)] = 0;
       for (int k = 0; k < N; k += BS)
       {
         double *m1 = &R1[BY_ROW(i, k, N)];
         double *m2 = &A[BY_COL(k, j, N)];
-        double *mr = &r1a[BY_ROW(i, k, N)];
+        double *mr = &r1as[BY_ROW(i, j, N)];
         for (int x = 0; x < BS; x++)
         {
           for (int y = 0; y < BS; y++)
@@ -314,12 +324,12 @@ void *calculo_secuencial()
   {
     for (int j = 0; j < N; j += BS)
     {
-      r2b[BY_ROW(i, j, N)] = 0;
+      r2bs[BY_ROW(i, j, N)] = 0;
       for (int k = 0; k < N; k += BS)
       {
         double *m1 = &R2[BY_ROW(i, k, N)];
         double *m2 = &B[BY_COL(k, j, N)];
-        double *mr = &r2b[BY_ROW(i, k, N)];
+        double *mr = &r2bs[BY_ROW(i, j, N)];
         for (int x = 0; x < BS; x++)
         {
           for (int y = 0; y < BS; y++)
@@ -339,7 +349,7 @@ void *calculo_secuencial()
   {
     for (int j = 0; j < N; j++)
     {
-      Cs[BY_ROW(i, j, N)] = T[BY_ROW(i, j, N)] + avgR1 * avgR2 * (r1a[BY_ROW(i, j, N)] + r2b[BY_ROW(i, j, N)]);
+      Cs[BY_ROW(i, j, N)] = T[BY_ROW(i, j, N)] + avgR1 * avgR2 * (r1as[BY_ROW(i, j, N)] + r2bs[BY_ROW(i, j, N)]);
     }
   }
 }
