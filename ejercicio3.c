@@ -92,7 +92,6 @@ fflush(stdout);
     {
       avgR1 /= N * N;
       avgR2 /= N * N;
-      printf("%f-%f\n", avgR1, avgR2);
     }
 
     // Multiplicación R1*A
