@@ -70,8 +70,8 @@ int main(int argc, char *argv[])
     {
       R1[BY_ROW(i, j, N)] = (1 - T[BY_ROW(i, j, N)]) * (1 - cos(M[BY_ROW(i, j, N)])) + T[BY_ROW(i, j, N)] * sin(M[BY_ROW(i, j, N)]);
       R2[BY_ROW(i, j, N)] = (1 - T[BY_ROW(i, j, N)]) * (1 - sin(M[BY_ROW(i, j, N)])) + T[BY_ROW(i, j, N)] * cos(M[BY_ROW(i, j, N)]);
-      avgR1 = +R1[BY_ROW(i, j, N)];
-      avgR2 = +R2[BY_ROW(i, j, N)];
+      avgR1 += R1[BY_ROW(i, j, N)];
+      avgR2 += R2[BY_ROW(i, j, N)];
     }
   }
   avgR1 /= N * N;
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
       {
         double *m1 = &R1[BY_ROW(i, k, N)];
         double *m2 = &A[BY_COL(k, j, N)];
-        double *mr = &r1a[BY_ROW(i, k, N)];
+        double *mr = &r1a[BY_ROW(i, j, N)];
         for (int x = 0; x < BS; x++)
         {
           for (int y = 0; y < BS; y++)
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
       {
         double *m1 = &R2[BY_ROW(i, k, N)];
         double *m2 = &B[BY_COL(k, j, N)];
-        double *mr = &r2b[BY_ROW(i, k, N)];
+        double *mr = &r2b[BY_ROW(i, j, N)];
         for (int x = 0; x < BS; x++)
         {
           for (int y = 0; y < BS; y++)
