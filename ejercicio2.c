@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
   //Llamado secuencial
   timetick = dwalltime();
 
-  calculo_secuencial(0);
+  calculo_secuencial();
 
   double stime = dwalltime() - timetick;
 

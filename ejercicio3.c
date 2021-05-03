@@ -32,8 +32,6 @@ int main(int argc, char *argv[])
     return 0;
   }
   printf("Calculando algoritmo paralelo empleando OpenMP. Matriz de %d x %d, con bloques de %d y %d threads\n", N, N, BS, Th);
-printf("Pase\n");
-fflush(stdout);
 
   omp_set_num_threads(Th);
 
@@ -67,15 +65,16 @@ fflush(stdout);
       M[BY_ROW(i, j, N)] = randFP(0, 2 * PI);
     }
   }
+  double avgR1 = 0;
+  double avgR2 = 0;
   //CALCULO PARALELO
   double timetick = dwalltime();
 
-  // Calcular AVGR1 y 𝑅1(𝑖,𝑗) = (1 − 𝑇(𝑖,𝑗))(1 − 𝑐𝑜𝑠𝜃(𝑖,𝑗)) + 𝑇(𝑖,𝑗) 𝑠𝑖𝑛𝜃(𝑖,𝑗)
-  // y AVGR2y 𝑅2(𝑖,𝑗) = (1 − 𝑇(𝑖,𝑗))(1 − sin𝜃(𝑖,𝑗)) + 𝑇(𝑖,𝑗) cos𝜃(𝑖,𝑗)
-  double avgR1 = 0;
-  double avgR2 = 0;
 #pragma omp parallel shared(R1, R2, A, B, T, M, r1ap, r2bp, Cp, N, BS)
   {
+  // Calcular AVGR1 y 𝑅1(𝑖,𝑗) = (1 − 𝑇(𝑖,𝑗))(1 − 𝑐𝑜𝑠𝜃(𝑖,𝑗)) + 𝑇(𝑖,𝑗) 𝑠𝑖𝑛𝜃(𝑖,𝑗)
+  // y AVGR2y 𝑅2(𝑖,𝑗) = (1 − 𝑇(𝑖,𝑗))(1 − sin𝜃(𝑖,𝑗)) + 𝑇(𝑖,𝑗) cos𝜃(𝑖,𝑗)
+
 #pragma omp for reduction(+:avgR1) schedule(static) reduction(+:avgR2)
     for (int i = 0; i < N; i++)
     {
@@ -146,7 +145,7 @@ fflush(stdout);
       }
     }
 
-    // Calcular C = T + avgR * R(A + B)
+    // Calcular C = T + avgR1 * avgR2 * (R1 * A + R2 * B)
 #pragma omp for schedule(static)
     for (int i = 0; i < N; i++)
     {
@@ -231,7 +230,7 @@ fflush(stdout);
     }
   }
 
-  // Calcular C = T + avgR * R(A + B)
+  // Calcular C = T + avgR1 * avgR2 * (R1 * A + R2 * B)
   for (int i = 0; i < N; i++)
   {
     for (int j = 0; j < N; j++)

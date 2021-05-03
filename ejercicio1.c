@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  // Calcular C = T + avgR * R(A + B)
+  // Calcular C = T + avgR1 * avgR2 * (R1 * A + R2 * B)
   for (int i = 0; i < N; i++)
   {
     for (int j = 0; j < N; j++)
