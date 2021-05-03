@@ -30,7 +30,7 @@ double avgR1;
 double avgR2;
 
 pthread_mutex_t mutex;
-pthread_barrier_t barrier_avgr, barrier_c, barrier_init;
+pthread_barrier_t barrier_avgr, barrier_c;
 
 /* Time in seconds from some point in the past */
 double dwalltime();
@@ -49,9 +49,9 @@ double randFP(double min, double max)
 int main(int argc, char *argv[])
 {
   // Controla los argumentos al programa
-  if (argc != 4 || (N = atoi(argv[1])) <= 0 || (BS = atoi(argv[2])) <= 0 || (N % BS != 0) || (Th = atoi(argv[3])) <= 0 || (Th != 1 && Th % 2 != 0) || Th > 8)
+  if (argc != 4 || (N = atoi(argv[1])) <= 0 || (BS = atoi(argv[2])) <= 0 || (Th = atoi(argv[3])) <= 0 || (Th != 1 && Th % 2 != 0) || Th > 8 || (N % (BS * Th) != 0))
   {
-    printf("\nError, modo de uso: %s N BS T (N debe ser multiplo de BS y T debe ser multiplo de 2 y menor o igual a 8)\n", argv[0]);
+    printf("\nError, modo de uso: %s N BS T (N debe ser multiplo de BS x T y T debe ser multiplo de 2 y menor o igual a 8)\n", argv[0]);
     printf("Parametros: Matriz de %d x %d, con bloques de %d y %d threads\n", N, N, BS, Th);
 
     return 0;
@@ -81,7 +81,6 @@ int main(int argc, char *argv[])
 
   pthread_barrier_init(&barrier_avgr, NULL, Th);
   pthread_barrier_init(&barrier_c, NULL, Th);
-  pthread_barrier_init(&barrier_init, NULL, Th);
 
   int i, j;
   int *ids = (int *)malloc(sizeof(int) * Th);
@@ -174,7 +173,6 @@ int main(int argc, char *argv[])
   pthread_mutex_destroy(&mutex);
   pthread_barrier_destroy(&barrier_avgr);
   pthread_barrier_destroy(&barrier_c);
-  pthread_barrier_destroy(&barrier_init);
 }
 
 void *worker(void *ptr)
@@ -211,7 +209,7 @@ void *worker(void *ptr)
     avgR2 /= (N * N);
     pthread_mutex_unlock(&mutex);
   }
-  pthread_barrier_wait(&barrier_init);
+
   // Multiplicación R1*A
   for (int i = 0; i < (N / Th); i += BS)
   {
